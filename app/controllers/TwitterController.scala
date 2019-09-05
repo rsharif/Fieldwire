@@ -10,7 +10,10 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 
 import play.api.libs.json._
 
-import services.TweetService
+import com.fieldwire.services.TweetService
+import com.fieldwire.services.Tweet
+
+import org.slf4j.LoggerFactory
 
 
 /**
@@ -29,13 +32,26 @@ import services.TweetService
  * a blocking API.
  */
 @Singleton
-class TwitterController @Inject()(cc: ControllerComponents, actorSystem: ActorSystem, tweetService: TweetService)(implicit exec: ExecutionContext) extends AbstractController(cc) {
+class TwitterController @Inject()(cc: ControllerComponents, actorSystem: ActorSystem, tweetService: TweetService)(implicit exec: ExecutionContext)
+  extends AbstractController(cc) {
 
+  private var logger = LoggerFactory.getLogger(getClass)
 
   def tweets = Action.async {
     Future {
       Ok(Json.toJson(tweetService.getTweets))
     }
+  }
+
+  def createTweet = Action.async(parse.json[Tweet]) { request =>
+      logger.info(s"Logging request ${request.body}")
+      tweetService.createTweet(request.body).map ( tweet =>
+        Ok(Json.toJson(tweet))
+      ).recover {
+
+        case ex: Exception => Ok(ex.getMessage)
+      }
+
   }
 
 
