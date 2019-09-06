@@ -1,5 +1,6 @@
 package controllers
 
+import java.io.{File, FileInputStream, FileOutputStream}
 import java.nio.file.Paths
 
 import javax.inject._
@@ -12,7 +13,10 @@ import play.api.libs.json._
 import com.fieldwire.services.ConstructionProjectService
 import org.slf4j.LoggerFactory
 import com.fieldwire.model._
-
+import com.sksamuel.scrimage.Image
+import com.sksamuel.scrimage.nio.{JpegWriter, PngWriter}
+import org.apache.commons.io.FilenameUtils
+import scalikejdbc._
 
 /**
  * This controller creates an `Action` that demonstrates how to write
@@ -30,7 +34,11 @@ import com.fieldwire.model._
  * a blocking API.
  */
 @Singleton
-class ConstructionProjectController @Inject()(cc: ControllerComponents, actorSystem: ActorSystem, constructionProjectService: ConstructionProjectService)(implicit exec: ExecutionContext)
+class ConstructionProjectController @Inject()
+(
+  cc: ControllerComponents,
+  actorSystem: ActorSystem,
+  constructionProjectService: ConstructionProjectService)(implicit exec: ExecutionContext)
   extends AbstractController(cc) {
 
   private var logger = LoggerFactory.getLogger(getClass)
@@ -40,7 +48,21 @@ class ConstructionProjectController @Inject()(cc: ControllerComponents, actorSys
       if (!authenticate(request)) {
         Forbidden("You are not authenticated to make this request")
       } else {
+
         Ok(Json.toJson(constructionProjectService.getConstructionProjects))
+      }
+
+    }
+  }
+
+  def getProjectById(id: String) = Action.async { request =>
+    Future {
+      if (!authenticate(request)) {
+        Forbidden("You are not authenticated to make this request")
+      } else {
+        val constructionProject = constructionProjectService.getConstructionProjectById(id);
+        logger.debug(s"Find project by Id ${id } , ${constructionProject}")
+        Ok(Json.toJson(constructionProject))
       }
 
     }
@@ -48,8 +70,9 @@ class ConstructionProjectController @Inject()(cc: ControllerComponents, actorSys
 
   def createProject = Action.async(parse.json[ConstructionProject]) { request =>
       logger.info(s"Logging request ${request.body}")
-      constructionProjectService.createConstructionProject(request.body).map (constructionProject =>
+      constructionProjectService.createConstructionProject(request.body).map (constructionProject => {
         Ok(Json.toJson(constructionProject))
+      }
       ).recover {
 
         case ex: Exception => Ok(ex.getMessage)
@@ -57,12 +80,36 @@ class ConstructionProjectController @Inject()(cc: ControllerComponents, actorSys
 
   }
 
+  def getFloorPlansByProject(id: String) = Action.async { request =>
+    Future {
+      if (!authenticate(request)) {
+        Forbidden("You are not authenticated to make this request")
+      } else {
+        val constructionProject = constructionProjectService.getFloorPlanByProject(id);
+        Ok(Json.toJson(constructionProject))
+      }
+
+    }
+  }
+
+  def removeProject(id: String) = Action.async { request =>
+    Future {
+      if (!authenticate(request)) {
+        Forbidden("You are not authenticated to make this request")
+      } else {
+        constructionProjectService.removeProject(id);
+        Ok("Deleted")
+      }
+
+    }
+  }
+
   def authenticate(request: Request[AnyContent]): Boolean = {
     val userName = request.headers.get("username").fold("")(identity)
     userName == "fieldwire"
   }
 
-  def uploadField = Action(parse.multipartFormData) { request =>
+  def uploadFile = Action(parse.multipartFormData) { request =>
     request.body
       .file("floorplan")
       .map { picture =>
@@ -72,7 +119,15 @@ class ConstructionProjectController @Inject()(cc: ControllerComponents, actorSys
         val fileSize    = picture.fileSize
         val contentType = picture.contentType
 
-        picture.ref.copyTo(Paths.get(s"/tmp/picture/$filename"), replace = true)
+
+        picture.ref.copyTo(Paths.get(s"/tmp/floorplans/$filename"), replace = true)
+
+        implicit val writer = PngWriter()
+        val in = new FileInputStream(s"/tmp/floorplans/$filename") // input stream
+        val fileNameWithoutExtension = FilenameUtils.getBaseName(filename.toString)
+        Image.fromStream(in).fit(100, 100).output(new File(s"/tmp/floorplans/thumbnails/${fileNameWithoutExtension}.png"))
+
+
         Ok("File uploaded")
       }
       .getOrElse {

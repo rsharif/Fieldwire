@@ -17,3 +17,23 @@ unmanagedResourceDirectories in Test <+=  baseDirectory ( _ /"target/web/public/
 libraryDependencies ++= Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "3.0.0" % "test"
 )
+
+libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-core" % "2.1.8"
+
+libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-io-extra" % "2.1.8"
+
+libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-filters" % "2.1.8"
+
+libraryDependencies += "commons-io" % "commons-io" % "2.6"
+
+//libraryDependencies += "com.h2database" % "h2" % "1.4.192"
+
+//libraryDependencies += "com.typesafe.play" %% "play-slick" % "3.0.0"
+
+//libraryDependencies += jdbc
+
+libraryDependencies ++= Seq(
+  "org.scalikejdbc" %% "scalikejdbc"               % "2.5.2",
+  "com.h2database"  %  "h2"                        % "1.4.199",
+  "ch.qos.logback"  %  "logback-classic"           % "1.2.3"
+)

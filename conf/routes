@@ -13,7 +13,10 @@ GET     /message                    controllers.AsyncController.message
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
 
-GET     /projects                     controllers.ConstructionProjectController.projects
-POST    /createProject                     controllers.ConstructionProjectController.createProject
+GET     /projects                    controllers.ConstructionProjectController.projects
+POST    /project                     controllers.ConstructionProjectController.createProject
+GET    /project/:id                  controllers.ConstructionProjectController.getProjectById(id: String)
+GET    /project/:id/floorPlans       controllers.ConstructionProjectController.getFloorPlansByProject(id: String)
 
-POST    /createProject                     controllers.ConstructionProjectController.createProject
+POST    /upload                      controllers.ConstructionProjectController.uploadFile
+DELETE  /project/:id                 controllers.ConstructionProjectController.removeProject(id: String)
